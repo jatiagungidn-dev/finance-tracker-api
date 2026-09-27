@@ -1,6 +1,7 @@
 import express from "express";
 import { runMigration } from "./database/migrate.js";
-import transactionRoutes from "./routes/transactions.js";
+import userRoutes from "./modules/users/user.route.js";
+import transactionRoutes from "./modules/transactions/transaction.route.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,9 +10,10 @@ app.use(express.json());
 
 runMigration();
 
-app.use("/api/transaction", transactionRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/transactions", transactionRoutes);
 
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.json({ message: "Finance Tracker is running" });
 });
 

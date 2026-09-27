@@ -1,6 +1,6 @@
 import { Router } from "express";
-import db from "../config/db.js";
-import type { Transaction } from "../types/index.js";
+import db from "../../config/db.js";
+import type { Transaction } from "../../types/index.js";
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import express from "express";
-import { initDatabase } from "./config/db.js";
+import { runMigration } from "./database/migrate.js";
 import transactionRoutes from "./routes/transactions.js";
 
 const app = express();
@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-initDatabase();
+runMigration();
 
 app.use("/api/transaction", transactionRoutes);
 

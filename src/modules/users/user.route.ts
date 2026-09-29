@@ -122,7 +122,7 @@ router.patch("/:id", (req, res) => {
       ...values,
     );
 
-    const userData = db.prepare("SELECT * FROM users where id = ?").get(id);
+    const userData = db.prepare("SELECT * FROM users WHERE id = ?").get(id);
 
     res.status(200).json({
       status: "success",

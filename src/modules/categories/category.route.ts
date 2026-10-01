@@ -95,22 +95,6 @@ router.patch("/:id", (req, res) => {
         .json({ status: "fail", message: "Invalid id request" });
     }
 
-    const category = db
-      .prepare(
-        `
-        SELECT *
-        FROM categories
-        WHERE id = ?
-    `,
-      )
-      .get(id);
-
-    if (!category) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Category not found" });
-    }
-
     const { name, type } = req.body;
 
     if (name === undefined && type === undefined) {
@@ -120,17 +104,10 @@ router.patch("/:id", (req, res) => {
       });
     }
 
-    const updates = [];
-    const values = [];
-
-    if (name !== undefined) {
-      updates.push("name = ?");
-      values.push(name);
-    }
-
-    if (type !== undefined) {
-      updates.push("type = ?");
-      values.push(type);
+    if (name !== undefined && typeof name !== "string" && name.trim() === "") {
+      return res
+        .status(400)
+        .json({ status: "fail", message: "Name cannot be empty" });
     }
 
     if (type !== undefined && type !== "income" && type !== "expense") {
@@ -138,6 +115,19 @@ router.patch("/:id", (req, res) => {
         status: "fail",
         message: "Type can only be 'income' or 'expense'",
       });
+    }
+
+    const updates = [];
+    const values = [];
+
+    if (name !== undefined) {
+      updates.push("name = ?");
+      values.push(name.trim());
+    }
+
+    if (type !== undefined) {
+      updates.push("type = ?");
+      values.push(type);
     }
 
     values.push(id);
@@ -152,6 +142,12 @@ router.patch("/:id", (req, res) => {
     `,
       )
       .get(...values);
+
+    if (!update) {
+      return res
+        .status(404)
+        .json({ status: "fail", message: "Category not found" });
+    }
 
     res.status(200).json({
       status: "success",
@@ -173,22 +169,6 @@ router.delete("/:id", (req, res) => {
         .json({ status: "fail", message: "Invalid id request" });
     }
 
-    const category = db
-      .prepare(
-        `
-        SELECT *
-        FROM categories
-        WHERE id = ?
-    `,
-      )
-      .get(id);
-
-    if (!category) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Category not found" });
-    }
-
     const deleteCategory = db
       .prepare(
         `
@@ -197,6 +177,12 @@ router.delete("/:id", (req, res) => {
     `,
       )
       .run(id);
+
+    if (deleteCategory.changes === 0) {
+      return res
+        .status(404)
+        .json({ status: "fail", message: "Category not found" });
+    }
 
     res.status(200).json({
       status: "success",

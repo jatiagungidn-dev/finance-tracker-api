@@ -20,45 +20,87 @@ router.get("/", (_req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const { account_id, category_id, type, amount, description } =
-    req.body as Transaction;
+  try {
+    const { account_id, category_id, type, amount, description } = req.body;
 
-  if (!account_id || !category_id || !type || !amount) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+    if (
+      !Number.isInteger(account_id) ||
+      account_id <= 0 ||
+      !Number.isInteger(category_id) ||
+      category_id <= 0
+    ) {
+      return res.status(400).json({
+        status: "fail",
+        message: "account_id and category_id must be valid positive integer",
+      });
+    }
 
-  const createTransaction = db.transaction(() => {
-    const insertStmt = db.prepare(`
+    if (type !== "income" && type !== "expense") {
+      return res.status(400).json({
+        status: "fail",
+        message: "Type can only be 'income' or 'expense'",
+      });
+    }
+
+    if (typeof amount !== "number" || amount <= 0) {
+      return res
+        .status(400)
+        .json({ status: "fail", message: "Amount must be a positive number" });
+    }
+
+    const account = db
+      .prepare("SELECT id FROM accounts WHERE id = ?")
+      .get(account_id);
+
+    if (!account) {
+      return res
+        .status(400)
+        .json({ status: "fail", message: "Account not found" });
+    }
+
+    const category = db
+      .prepare("SELECT id FROM categories WHERE id = ?")
+      .get(category_id);
+
+    if (!category) {
+      return res
+        .status(400)
+        .json({ status: "fail", message: "Category not found" });
+    }
+
+    const createTransaction = db.transaction(() => {
+      const transaction = db
+        .prepare(
+          `
         INSERT INTO transactions (account_id, category_id, type, amount, description)
         VALUES (?, ?, ?, ?, ?)
-    `);
-    const info = insertStmt.run(
-      account_id,
-      category_id,
-      type,
-      amount,
-      description || "",
-    );
+        RETURNING id, account_id, category_id, type, amount, description, created_at
+      `,
+        )
+        .get(account_id, category_id, type, amount, description || "");
 
-    const balanceOperator = type === "income" ? "+" : "-";
-    const updateBalanceStmt = db.prepare(`
+      const balanceOperator = type === "income" ? "+" : "-";
+
+      db.prepare(
+        `
         UPDATE accounts
         SET balance = balance ${balanceOperator} ?
         WHERE id = ?
-    `);
-    updateBalanceStmt.run(amount, account_id);
+      `,
+      ).run(amount, account_id);
 
-    return info.lastInsertRowid;
-  });
+      return transaction;
+    });
 
-  try {
-    const newId = createTransaction();
+    const data = createTransaction();
+
     res.status(201).json({
+      status: "success",
       message: "Transaction created successfully",
-      transaction_id: newId,
+      data,
     });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ status: "error", message: err.message });
   }
 });
 

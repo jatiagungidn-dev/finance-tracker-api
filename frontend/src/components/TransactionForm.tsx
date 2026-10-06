@@ -1,21 +1,36 @@
 import { useState } from "react";
+import type { Transaction } from "../types";
+
+interface TransactionFormProps {
+  onAddTransaction: (transaction: Transaction) => void;
+}
 
 function TransactionForm() {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    console.log({ description, amount });
+    const response = await fetch("http://localhost:3000/api/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        account_id: 1,
+        category_id: 1,
+        type: "expense",
+        amount: Number(amount),
+        description,
+      }),
+    });
+
+    const result = await response.json();
+
+    console.log(result);
   }
 
   return (
     <form onSubmit={handleSubmit}>
-      <div>
-        <h2>{description}</h2>
-        <p>Rp{amount}</p>
-      </div>
       <div>
         <label>Description</label>
 
